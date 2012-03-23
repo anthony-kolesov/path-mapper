@@ -1,0 +1,10 @@
+# Directories
+img
+gpx
+.hg
+db_backup
+
+# Files
+.hgignore
+*.sqlite
+*.swp
