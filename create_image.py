@@ -36,7 +36,7 @@ def create_db(db_file, db_schema):
     db = sqlite3.connect(db_file)
     c = db.cursor()
     c.executescript(db_schema.read(-1))
-    db_scheme.close()
+    db_schema.close()
     c.close()
     return db
 
