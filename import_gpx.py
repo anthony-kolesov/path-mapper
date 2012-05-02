@@ -16,14 +16,14 @@ def get_arguments():
     argparser.add_argument('--version', action='version', version='%(prog)s ' + __version__)
     argparser.add_argument('gpx', nargs='+', type=argparse.FileType('r'))
     argparser.add_argument('--db', default='data.sqlite')
-    argparser.add_argument('--db-scheme', default='db_schema.sql', type=argparse.FileType('r'))
+    argparser.add_argument('--db-schema', default='db_schema.sql', type=argparse.FileType('r'))
     return argparser.parse_args()
 
 
 def create_db(db_file, db_scheme):
     conn = sqlite3.connect(db_file)
     c = conn.cursor()
-    c.executescript(db_scheme.read(-1))
+    c.executescript(db_schema.read(-1))
     db_scheme.close()
     c.close()
     return conn
