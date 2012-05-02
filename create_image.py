@@ -15,6 +15,8 @@ import cairo
 
 __version__ = '0.1.1'
 
+IMAGE_TYPE_OLD = 'old'
+IMAGE_TYPE_POINTS = 'points'
 
 def get_arguments():
     # Parse commandline arguments.
@@ -29,6 +31,9 @@ def get_arguments():
     argparser.add_argument('--height', default=350, type=int, help='Image height in pixels.')
     argparser.add_argument('--padding', default=20, type=int, help='Image internal borders.')
     argparser.add_argument('--tracks', default='', type=str, help='Comma separated list of tracks to draw.')
+    argparser.add_argument('-t', '--type', default=IMAGE_TYPE_OLD, type=str,
+                           choices=(IMAGE_TYPE_OLD, IMAGE_TYPE_POINTS),
+                           help='Type of image to generate.')
     return argparser.parse_args()
 
 
@@ -50,12 +55,7 @@ def getTrackIdByName(cursor, track_name):
         return None
 
 
-if __name__ == '__main__':
-    # Init application.
-    logging.basicConfig(level=logging.DEBUG)
-    args = get_arguments()
-    db = create_db(args.db, args.db_schema)
-
+def old_algo(db, args):
     # Decide whether to compress output.
     if os.path.splitext(args.output.name)[1] == '.svgz':
         output_stream = gzip.GzipFile(fileobj=args.output)
@@ -213,3 +213,15 @@ if __name__ == '__main__':
     logging.debug('verticals: %s, horiz: %s', verticals, horiz)
     logging.debug('points on line: %s/%s', points_on_line, overall_points)
 
+
+def render_as_points(db, args):
+    pass
+
+
+if __name__ == '__main__':
+    # Init application.
+    logging.basicConfig(level=logging.DEBUG)
+    args = get_arguments()
+    db = create_db(args.db, args.db_schema)
+    types = {IMAGE_TYPE_OLD: old_algo, IMAGE_TYPE_POINTS: render_as_points}
+    types[args.type](db, args)
