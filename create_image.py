@@ -214,14 +214,56 @@ def old_algo(db, args):
     logging.debug('points on line: %s/%s', points_on_line, overall_points)
 
 
-def render_as_points(db, args):
-    pass
+def get_where_clause(args):
+    if len(args.tracks) > 0:
+        return ' where track in ({0}) '.format(args.tracks)
+    else:
+        return ' '
 
+def get_extreme_coordinates(cursor, where_clause):
+    query = 'select max(lat), max(lon), min(lat), min(lon) from track_points' + where_clause
+    cursor.execute(query)
+    max_lat, max_lon, min_lat, min_lon = cursor.fetchone()
+    return (max_lat, max_lon, min_lat, min_lon)
+
+def get_scale(min_lon, max_lon, min_lat, max_lat, imgWidth, imgHeight, imgPadding):
+    return min( (imgWidth - imgPadding * 2) / (max_lon - min_lon),
+                 (imgHeight - imgPadding * 2) / (max_lat - min_lat))
+
+def render_as_points(db, ctx, args):
+    logging.debug('Image type is points.')
+
+    where_clause = get_where_clause(args)
+    cursor = db.cursor()
+    max_lat, max_lon, min_lat, min_lon = get_extreme_coordinates(cursor, where_clause)
+    scale = get_scale(min_lon, max_lon, min_lat, max_lat, args.width, args.height, args.padding)
+   
+    # Get points
+    cursor.execute('select lat, lon, track from track_points ' + where_clause + ' order by track, id')
+    row = cursor.fetchone()
+    while row is not None:
+        row = cursor.fetchone()
 
 if __name__ == '__main__':
     # Init application.
     logging.basicConfig(level=logging.DEBUG)
     args = get_arguments()
     db = create_db(args.db, args.db_schema)
-    types = {IMAGE_TYPE_OLD: old_algo, IMAGE_TYPE_POINTS: render_as_points}
-    types[args.type](db, args)
+    if args.type == IMAGE_TYPE_OLD:
+        old_algo(db, args)
+    else:
+        # Init drawing objects.
+        surface = cairo.SVGSurface(args.output, args.width, args.height)
+        ctx = cairo.Context(surface)
+        
+        # Fill background.
+        ctx.set_source_rgb(0, 0, 0)
+        ctx.paint()
+        
+        types = {IMAGE_TYPE_POINTS: render_as_points}
+        types[args.type](db, ctx, args)
+        
+        logging.info('Rendering completed.')
+        surface.finish()
+        args.output.close() 
+        logging.debug('Output closed.')
