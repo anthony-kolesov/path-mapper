@@ -20,7 +20,7 @@ def get_arguments():
     return argparser.parse_args()
 
 
-def create_db(db_file, db_scheme):
+def create_db(db_file, db_schema):
     conn = sqlite3.connect(db_file)
     c = conn.cursor()
     c.executescript(db_schema.read(-1))
@@ -83,7 +83,7 @@ def import_gpx(db, fObj):
 
 if __name__ == '__main__':
     args = get_arguments()
-    db = create_db(args.db, args.db_scheme)
+    db = create_db(args.db, args.db_schema)
     for fObj in args.gpx:
         print('Working with file {0}.'.format(fObj.name))
         import_gpx(db, fObj)

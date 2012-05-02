@@ -32,7 +32,7 @@ def get_arguments():
     return argparser.parse_args()
 
 
-def create_db(db_file, db_scheme):
+def create_db(db_file, db_schema):
     db = sqlite3.connect(db_file)
     c = db.cursor()
     c.executescript(db_schema.read(-1))
@@ -54,7 +54,7 @@ if __name__ == '__main__':
     # Init application.
     logging.basicConfig(level=logging.DEBUG)
     args = get_arguments()
-    db = create_db(args.db, args.db_scheme)
+    db = create_db(args.db, args.db_schema)
 
     # Decide whether to compress output.
     if os.path.splitext(args.output.name)[1] == '.svgz':
