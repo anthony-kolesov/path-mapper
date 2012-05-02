@@ -10,13 +10,40 @@ import sqlite3
 
 import cairo
 
-#import track_db
-
-
 __version__ = '0.1.1'
 
 IMAGE_TYPE_OLD = 'old'
 IMAGE_TYPE_POINTS = 'points'
+
+
+class Point:
+    def __init__(self, lat, lon, trackId):
+        self.lat = lat
+        self.lon = lon
+        self.trackId = trackId
+
+    @staticmethod
+    def from_row(row):
+        return Point(row[0], row[1], row[2])
+
+
+class RenderingSurface:
+    def __init__(self, cursor, args):
+        self.where_clause = get_where_clause(args)
+        max_lat, max_lon, min_lat, min_lon = get_extreme_coordinates(cursor, self.where_clause)
+        self.scale = get_scale(min_lon, max_lon, min_lat, max_lat, args.width, args.height, args.padding)
+
+        self.min_lon = min_lon
+        self.max_lon = max_lon
+        self.min_lat = min_lat
+        self.max_lat = max_lat
+        self.padding = args.padding
+
+    def transform_to_surface_coords(self, lat, lon):
+        x = (lon - self.min_lon) * self.scale + self.padding
+        y = (self.max_lat - lat) * self.scale + self.padding
+        return (x, y)
+
 
 def get_arguments():
     # Parse commandline arguments.
@@ -230,19 +257,32 @@ def get_scale(min_lon, max_lon, min_lat, max_lat, imgWidth, imgHeight, imgPaddin
     return min( (imgWidth - imgPadding * 2) / (max_lon - min_lon),
                  (imgHeight - imgPadding * 2) / (max_lat - min_lat))
 
-def render_as_points(db, ctx, args):
+def render_points(ctx, points, renderSurface):
+    for point in points:
+        x, y = renderSurface.transform_to_surface_coords(point.lat, point.lon)
+        ctx.set_source_rgb(0, 1.0, 0)
+        ctx.set_line_width(1)
+        ctx.arc(x, y, 1, 0, 2 * math.pi)
+        ctx.fill()
+
+def create_points_image(db, ctx, args):
     logging.debug('Image type is points.')
 
-    where_clause = get_where_clause(args)
     cursor = db.cursor()
-    max_lat, max_lon, min_lat, min_lon = get_extreme_coordinates(cursor, where_clause)
-    scale = get_scale(min_lon, max_lon, min_lat, max_lat, args.width, args.height, args.padding)
+    renderSurface = RenderingSurface(cursor, args)
    
     # Get points
-    cursor.execute('select lat, lon, track from track_points ' + where_clause + ' order by track, id')
+    logging.info('Getting points from database.')
+    points = []
+    cursor.execute('select lat, lon, track from track_points ' + renderSurface.where_clause + ' order by track, id')
     row = cursor.fetchone()
     while row is not None:
+        point = Point.from_row(row)
+        points.append(point)
         row = cursor.fetchone()
+
+    logging.info('Rendering points.')
+    render_points(ctx, points, renderSurface)
 
 if __name__ == '__main__':
     # Init application.
@@ -260,7 +300,7 @@ if __name__ == '__main__':
         ctx.set_source_rgb(0, 0, 0)
         ctx.paint()
         
-        types = {IMAGE_TYPE_POINTS: render_as_points}
+        types = {IMAGE_TYPE_POINTS: create_points_image}
         types[args.type](db, ctx, args)
         
         logging.info('Rendering completed.')
