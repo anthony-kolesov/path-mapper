@@ -14,6 +14,7 @@ __version__ = '0.1.1'
 
 IMAGE_TYPE_OLD = 'old'
 IMAGE_TYPE_POINTS = 'points'
+IMAGE_TYPE_LINES = 'lines'
 
 
 class Point:
@@ -59,7 +60,7 @@ def get_arguments():
     argparser.add_argument('--padding', default=20, type=int, help='Image internal borders.')
     argparser.add_argument('--tracks', default='', type=str, help='Comma separated list of tracks to draw.')
     argparser.add_argument('-t', '--type', default=IMAGE_TYPE_OLD, type=str,
-                           choices=(IMAGE_TYPE_OLD, IMAGE_TYPE_POINTS),
+                           choices=(IMAGE_TYPE_OLD, IMAGE_TYPE_POINTS, IMAGE_TYPE_LINES),
                            help='Type of image to generate.')
     return argparser.parse_args()
 
@@ -265,13 +266,7 @@ def render_points(ctx, points, renderSurface):
         ctx.arc(x, y, 1, 0, 2 * math.pi)
         ctx.fill()
 
-def create_points_image(db, ctx, args):
-    logging.debug('Image type is points.')
-
-    cursor = db.cursor()
-    renderSurface = RenderingSurface(cursor, args)
-   
-    # Get points
+def get_points(cursor):
     logging.info('Getting points from database.')
     points = []
     cursor.execute('select lat, lon, track from track_points ' + renderSurface.where_clause + ' order by track, id')
@@ -280,9 +275,20 @@ def create_points_image(db, ctx, args):
         point = Point.from_row(row)
         points.append(point)
         row = cursor.fetchone()
+    return points
 
+def create_points_image(cursor, ctx, renderSurface):
+    logging.debug('Image type is points.')
+    points = get_points(cursor)
     logging.info('Rendering points.')
     render_points(ctx, points, renderSurface)
+
+def create_lines_image(cursorb, ctx, renderSurface):
+    logging.debug('Image type is lines.')
+    points = get_points(cursor)
+    logging.info('Rendering points.')
+    render_points(ctx, points, renderSurface)
+    
 
 if __name__ == '__main__':
     # Init application.
@@ -299,9 +305,12 @@ if __name__ == '__main__':
         # Fill background.
         ctx.set_source_rgb(0, 0, 0)
         ctx.paint()
-        
-        types = {IMAGE_TYPE_POINTS: create_points_image}
-        types[args.type](db, ctx, args)
+       
+        cursor = db.cursor()
+        renderSurface = RenderingSurface(cursor, args)
+ 
+        types = {IMAGE_TYPE_POINTS: create_points_image, IMAGE_TYPE_LINES: create_lines_image}
+        types[args.type](cursor, ctx, renderSurface)
         
         logging.info('Rendering completed.')
         surface.finish()
