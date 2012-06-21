@@ -266,6 +266,27 @@ def render_points(ctx, points, renderSurface):
         ctx.arc(x, y, 1, 0, 2 * math.pi)
         ctx.fill()
 
+def render_lines(ctx, points, renderSurface):
+    previous_point = None
+    for point in points:
+        if previous_point is None or previous_point.trackId != point.trackId:
+            previous_point = point
+        else:
+            ctx.set_source_rgb(0, 1.0, 0)
+            ctx.set_line_width(1)
+            start_x, start_y = renderSurface.transform_to_surface_coords(previous_point.lat, previous_point.lon)
+            x, y = renderSurface.transform_to_surface_coords(point.lat, point.lon)
+            ctx.move_to(start_x, start_y)
+            ctx.line_to(x, y)
+            ctx.stroke()
+            previous_point = point
+    '''for point in points:
+        x, y = renderSurface.transform_to_surface_coords(point.lat, point.lon)
+        ctx.set_source_rgb(0, 1.0, 0)
+        ctx.set_line_width(1)
+        ctx.arc(x, y, 1, 0, 2 * math.pi)
+        ctx.fill()'''
+
 def get_points(cursor):
     logging.info('Getting points from database.')
     points = []
@@ -287,7 +308,7 @@ def create_lines_image(cursorb, ctx, renderSurface):
     logging.debug('Image type is lines.')
     points = get_points(cursor)
     logging.info('Rendering points.')
-    render_points(ctx, points, renderSurface)
+    render_lines(ctx, points, renderSurface)
     
 
 if __name__ == '__main__':

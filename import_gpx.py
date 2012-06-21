@@ -14,7 +14,8 @@ def get_arguments():
     # Parse commandline arguments.
     argparser = argparse.ArgumentParser(description='Convert GPX trackpoints to maps.')
     argparser.add_argument('--version', action='version', version='%(prog)s ' + __version__)
-    argparser.add_argument('gpx', nargs='+', type=argparse.FileType('r'))
+    argparser.add_argument('gpx', nargs='+', type=argparse.FileType('r'),
+        help='GPX files to import.')
     argparser.add_argument('--db', default='data.sqlite')
     argparser.add_argument('--db-schema', default='db_schema.sql', type=argparse.FileType('r'))
     return argparser.parse_args()
