@@ -3,6 +3,7 @@ img
 gpx
 .hg
 db_backup
+__pycache__
 
 # Files
 .hgignore
